@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Backbonetutorials.com Beginner Video Tutorial</title>
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css"/>
+
+</head>
+<body>
+    <div class="container">
+        <h1>User Manager</h1>
+        <hr/>
+        <div class="page">
+
+        </div>
+    </div>
+
+    <script type="text/template" id="user-list-template">
+        <a href="#/new" class="btn btn-primary">New User</a>
+        <hr/>
+        <table class="table striped">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Age</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% _.each(users, function(user) { %>
+
+                    <tr>
+                        <td><%= htmlEncode(user.get('firstname')) %></td>
+                        <td><%= htmlEncode(user.get('lastname')) %></td>
+                        <td><%= htmlEncode(user.get('age')) %></td>
+                        <td><a href="#/edit/<%= user.get('id')%>" class="btn btn-link">edit</a></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </script>
+
+    <script type="text/template" id="edit-user-template">
+        <form class="edit-user-form col-xs-3">
+            <legend>
+                <%= user ? 'Update' : 'Create' %> User
+            </legend>
+            <div class="form-group">
+                <label for="firstname">First Name:
+                <input type="text" name="firstname" id="firstname" class="form-control" value="<%= user ? user.get('firstname') : '' %>"/>
+            </div>
+            <div class="form-group">
+                <label for="lastname">Last Name:</label>
+                <input type="text" name="lastname" id="lastname" class="form-control" value="<%= user ? user.get('lastname') : '' %>"/>
+            </div>
+            <div class="form-group">
+                <label for="age">Age:</label>
+                <input type="text" name="age" id="age" class="form-control" value="<%= user ? user.get('age') : '' %>"/>
+            </div>
+            <hr/>
+            <% if(user) { %>
+            <input type="hidden" name="id" value="<%= user.id %>" />
+            <button data-user-id="<%= user.id %>" class="btn btn-danger delete">Delete</button>
+            <% }; %>
+            <button type="submit" class="btn"><%= user ? 'Update' : 'Create' %></button>
+        </form>
+
+    </script>
+
+    <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/backbone/backbone.js"></script>
+
+    <script>
+        $.ajaxPrefilter( function( options, originalOptions, jqXHR ) {
+            options.url = 'http://backbonejs-beginner.herokuapp.com' + options.url;
+        });
+
+        $.fn.serializeObject = function() {
+            var o = {};
+            var a = this.serializeArray();
+            $.each(a, function() {
+                if (o[this.name] !== undefined) {
+                    if (!o[this.name].push) {
+                        o[this.name] = [o[this.name]];
+                    }
+                    o[this.name].push(this.value || '');
+                } else {
+                    o[this.name] = this.value || '';
+                }
+            });
+            return o;
+        };
+
+        var Users = Backbone.Collection.extend({
+            url: '/users'
+        });
+
+        var User = Backbone.Model.extend({
+            urlRoot: '/users'
+        })
+
+        var UserListView = Backbone.View.extend({
+            el: '.page',
+            render: function() {
+                var that = this;
+                var users = new Users();
+                users.fetch({
+                   success: function(users) {
+                       var template = _.template($('#user-list-template').html(), {users: users.models});
+                       that.$el.html(template);
+                   }
+                });
+
+            }
+        });
+
+        var EditUserView = Backbone.View.extend({
+            el: '.page',
+            events: {
+                'submit .edit-user-form': 'saveUser',
+                'click .delete': 'deleteUser'
+            },
+            saveUser: function (ev) {
+                var userDetails = $(ev.currentTarget).serializeObject();
+                var user = new User();
+                user.save(userDetails, {
+                    success: function (user) {
+                        router.navigate('', {trigger:true});
+                    }
+                });
+                return false;
+            },
+            deleteUser: function (ev) {
+                var userDetails = $(ev.currentTarget).serializeObject();
+                var user = new User();
+                this.user.destroy({
+                    success: function () {
+                        console.log('destroyed');
+                        router.navigate('', {trigger:true});
+                    }
+                });
+                return false;
+            },
+            render: function (options) {
+                var that = this;
+                if(options.id) {
+                    that.user = new User({id: options.id});
+                    that.user.fetch({
+                        success: function (user) {
+                            var template = _.template($('#edit-user-template').html(), {user: user});
+                            that.$el.html(template);
+                        }
+                    })
+                } else {
+                    var template = _.template($('#edit-user-template').html(), {user: null});
+                    that.$el.html(template);
+                }
+            }
+        });
+
+        var Router = Backbone.Router.extend({
+            routes: {
+                '': 'home',
+                'new': 'editUser',
+                'edit/:id': 'editUser'
+            }
+        });
+
+        var userListView = new UserListView();
+        var editUserView = new EditUserView();
+
+        var router = new Router();
+        router.on('route:home', function(){
+            userListView.render();
+        });
+        router.on('route:editUser', function(id){
+            editUserView.render({id: id});
+        });
+
+        Backbone.history.start();
+
+        function htmlEncode(value){
+            return $('<div/>').text(value).html();
+        }
+
+        function htmlDecode(value){
+            return $('<div/>').html(value).text();
+        }
+
+
+    </script>
+</body>
+</html>

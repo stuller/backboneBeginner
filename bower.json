@@ -1,0 +1,18 @@
+{
+    "name": "backboneTutorials.com",
+    "version": "1.0.0",
+    "main": "index.html",
+    "ignore": [
+        ".jshintrc",
+        "**/*.txt"
+    ],
+    "dependencies": {
+        "backbone": "*",
+        "bootstrap": "*",
+        "jquery": "*",
+        "requirejs": "*"
+    },
+    "devDependencies": {
+        "mocha": "*"
+    }
+}
